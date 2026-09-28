@@ -215,6 +215,43 @@ function deriveInputSpec(rules: FeeRuleRecord[]): {
   return spec;
 }
 
+/**
+ * Parse the contextual-prefill query parameters against the jurisdiction
+ * catalogue.
+ *
+ * Pure and exported for tests. The whitelist is the three documented keys
+ * (`state`, `city`, `permit`); unknown parameters are ignored. A selection
+ * only takes effect when the slugs actually exist in the catalogue, so nothing
+ * from the query string reaches anything but a string comparison — a wrong or
+ * stale prefill simply does nothing, which is the honest outcome for a link
+ * whose target data moved.
+ *
+ * `state` + `city` are required together (the location selectors are a pair);
+ * `permit` is optional and only resolves when the location resolved and the
+ * catalogue offers that permit type for the jurisdiction.
+ */
+export function resolvePrefill(
+  params: URLSearchParams,
+  jurisdictions: Array<Pick<CalculatorJurisdictionOption, "stateSlug" | "jurisdictionSlug" | "permits">>,
+): { stateSlug: string; jurisdictionSlug: string; permitTypeKey: string | null } | null {
+  const state = params.get("state");
+  const city = params.get("city");
+  if (!state || !city) return null;
+
+  const jurisdiction = jurisdictions.find(
+    (entry) => entry.stateSlug === state && entry.jurisdictionSlug === city,
+  );
+  if (!jurisdiction) return null;
+
+  const permitKey = params.get("permit");
+  if (!permitKey) return { stateSlug: jurisdiction.stateSlug, jurisdictionSlug: jurisdiction.jurisdictionSlug, permitTypeKey: null };
+
+  const permit = jurisdiction.permits.find((p) => p.permitTypeKey === permitKey);
+  if (!permit) return { stateSlug: jurisdiction.stateSlug, jurisdictionSlug: jurisdiction.jurisdictionSlug, permitTypeKey: null };
+
+  return { stateSlug: jurisdiction.stateSlug, jurisdictionSlug: jurisdiction.jurisdictionSlug, permitTypeKey: permit.permitTypeKey };
+}
+
 /* -------------------------------------------------------------------------- */
 /* Component                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -289,21 +326,16 @@ export function PermitFeeCalculator({ jurisdictions, fetchRules }: PermitFeeCalc
     prefillApplied.current = true;
 
     const params = new URLSearchParams(window.location.search);
-    const state = params.get("state");
-    const city = params.get("city");
-    if (!state || !city) return;
+    const prefill = resolvePrefill(params, jurisdictions);
+    if (!prefill) return;
 
-    const jurisdiction = jurisdictions.find(
-      (entry) => entry.stateSlug === state && entry.jurisdictionSlug === city,
-    );
-    if (!jurisdiction) return;
+    setStateSlug(prefill.stateSlug);
+    setJurisdictionSlug(prefill.jurisdictionSlug);
 
-    setStateSlug(jurisdiction.stateSlug);
-    setJurisdictionSlug(jurisdiction.jurisdictionSlug);
-
-    const permitKey = params.get("permit");
-    if (!permitKey) return;
-    const permit = jurisdiction.permits.find((p) => p.permitTypeKey === permitKey);
+    if (!prefill.permitTypeKey) return;
+    const permit = jurisdictions
+      .find((entry) => entry.jurisdictionSlug === prefill.jurisdictionSlug)
+      ?.permits.find((p) => p.permitTypeKey === prefill.permitTypeKey);
     if (!permit) return;
     // The permit's rules are loaded directly with the slugs in hand rather than
     // through `onPermitChange`: that function closes over this render's state,
@@ -313,7 +345,7 @@ export function PermitFeeCalculator({ jurisdictions, fetchRules }: PermitFeeCalc
     const loadPrefilledRules = async (): Promise<void> => {
       setPermitTypeKey(permit.permitTypeKey);
       setRules({ status: "loading" });
-      const response = await fetchRules(jurisdiction.jurisdictionSlug, permit.permitTypeKey);
+      const response = await fetchRules(prefill.jurisdictionSlug, permit.permitTypeKey);
       if (response.ok && response.feeRuleRecords) {
         setRules({
           status: "ready",
