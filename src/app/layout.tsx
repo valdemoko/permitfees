@@ -3,6 +3,7 @@ import { Archivo, Besley, IBM_Plex_Mono } from "next/font/google";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { ConsentScripts } from "@/components/seo/consent-scripts";
 import { JsonLdBlocks } from "@/components/seo/json-ld";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { composeTitle } from "@/lib/seo/metadata";
@@ -91,6 +92,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${besley.variable} ${archivo.variable} ${plexMono.variable}`}
     >
       <body>
+        {/* Google consent integration: Consent Mode v2 default denied + the
+            official Google CMP (Privacy & Messaging) + AdSense loader.
+            All env-gated; nothing loads without configuration. */}
+        <ConsentScripts />
         <a className="skip-link" href="#main">
           Skip to content
         </a>
