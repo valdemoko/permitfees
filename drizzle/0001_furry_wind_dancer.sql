@@ -1,0 +1,1 @@
+ALTER TYPE "public"."fee_type" ADD VALUE 'permit_minimum';

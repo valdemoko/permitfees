@@ -1,0 +1,57 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# production
+build/
+dist/
+
+# testing
+coverage/
+
+# env
+.env
+.env.local
+.env*.local
+!.env.example
+
+# drizzle
+drizzle/meta/_journal.json.bak
+
+# research and build scratch
+#
+# `.tmp-geo/` holds the Census boundary file the map generator reads (1.5MB of
+# public-domain geometry that `scripts/generate-us-map.ts` turns into the committed
+# `src/content/geo/us-states.ts`).
+#
+# `.tmp-research/` holds downloaded official fee schedules and their text
+# extractions. Those are public documents and the *transcription* is committed under
+# `research/`, with its source URL and hash; the downloads themselves change without
+# notice and should not sit in the repository as if they were a frozen artefact.
+.tmp-geo/
+.tmp-research/
+.tmp-*/
+
+# misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+.vercel
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# local research scratch at the repo root (working documents kept on disk,
+# not part of the codebase; the committed transcriptions live under research/)
+/eng.traineddata
+/*.pdf
+/*.docx
+/*.html
+/.tmp-*.log
+/.freebuff/

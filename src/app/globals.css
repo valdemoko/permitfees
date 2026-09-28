@@ -1,0 +1,2776 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   PermitFees — design system
+   Direction: "survey plate"
+
+   The product's authority comes from documents: fee schedules, code sections,
+   ordinances. So the interface is typeset like the technical publishing those
+   documents belong to — recorded measurements, hairline rules, engraved display
+   type, and one signal colour reserved for the single most important warning in
+   the product ("this is an estimate").
+
+   What that means concretely, and what it rules out:
+
+   - One display face with real character (a Clarendon slab, the vernacular of
+     nineteenth-century technical and legal publishing), one workhorse grotesque
+     for reading, one monospace for figures. Three voices, three jobs.
+   - Warm cartridge-paper canvas, near-black warm ink, hairlines for structure.
+     No gradients, no glass, no shadows except on the one floating element.
+   - Corners are drawn, not rounded: 2–4px. A 16px radius is a product decision
+     about friendliness, and this product's promise is precision.
+   - One accent (petrol) for interaction and one signal (vermilion) for the
+     estimate state. Green for verification. Nothing else carries colour.
+
+   The system is expressed as CSS classes rather than inline styles, because the
+   previous version could not express `:hover`, `:active`, `:focus-visible`,
+   `:disabled` or a transition at all — which is why every interactive element on
+   the site was visually inert. A design system that cannot describe its own
+   states is not a design system.
+
+   See DESIGN.md for the rationale in prose.
+   ========================================================================== */
+
+@theme {
+  /* ---------------------------------------------------------------- Faces */
+  --font-display: var(--font-besley), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, "Liberation Mono", monospace;
+
+  /* ------------------------------------------------------------- Surfaces */
+  --color-canvas: #faf8f3;
+  --color-surface: #ffffff;
+  --color-subtle: #f2efe7;
+  --color-sunken: #ece8de;
+  --color-line: #e4e0d5;
+  --color-line-strong: #c7c2b4;
+
+  /* ------------------------------------------------------- Ink (warm black) */
+  --color-ink-900: #171614;
+  --color-ink-800: #2a2823;
+  --color-ink-700: #45423a;
+  --color-ink-600: #5e5a4f;
+  --color-ink-500: #797466;
+  --color-ink-400: #9a9587;
+
+  /* ------------------------------------------ Accent: petrol (interaction) */
+  --color-accent-900: #08262e;
+  --color-accent-800: #0e3a46;
+  --color-accent-700: #14505f;
+  --color-accent-600: #19697c;
+  --color-accent-200: #b7d5dc;
+  --color-accent-100: #d7e7ea;
+  --color-accent-50: #edf4f6;
+
+  /* --------------------------------- Signal: vermilion (the estimate state) */
+  --color-caution-900: #6f1f13;
+  --color-caution-800: #8e2a19;
+  --color-caution-700: #ac3520;
+  --color-caution-100: #efd3cb;
+  --color-caution-50: #fbece7;
+
+  /* ------------------------------------------------------ Verified (green) */
+  --color-verified-900: #1b3d25;
+  --color-verified-800: #1f4b2c;
+  --color-verified-700: #275e39;
+  --color-verified-100: #cfe1d3;
+  --color-verified-50: #ecf4ee;
+
+  /* ------------------------------------------------------------- Danger */
+  --color-danger-800: #7a2118;
+  --color-danger-700: #9a2a1e;
+  --color-danger-100: #ecd3cd;
+  --color-danger-50: #fbece9;
+
+  /* ------------------------------------------------- Corners: drawn, tight */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Non-colour tokens. Kept out of `@theme` because nothing needs a generated
+   utility for a duration or a container width.
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Container measures: reading, data, and full-bleed. */
+  --measure-read: 44rem;
+  --measure-default: 58rem;
+  --measure-wide: 76rem;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+
+  /* One rhythm for every vertical band, so sections do not drift apart. */
+  --section-y: clamp(3rem, 6.5vw, 5rem);
+  --section-y-tight: clamp(1.75rem, 3vw, 2.5rem);
+
+  /* Motion. Short, because a data tool should feel responsive, not theatrical. */
+  --dur-fast: 120ms;
+  --dur: 180ms;
+  --dur-slow: 260ms;
+  --ease: cubic-bezier(0.32, 0.72, 0.3, 1);
+
+  /* The only shadow in the system: a floating element over content. */
+  --shadow-pop: 0 1px 2px rgba(23, 22, 20, 0.06), 0 8px 24px rgba(23, 22, 20, 0.12);
+  --ring: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent-600);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /*
+     `scroll-behavior: smooth` is deliberately NOT set here, and the reason is a
+     bug a reader reported rather than a preference.
+
+     The router resets the scroll position on every client-side navigation, and a
+     smooth scroll to the top is a long-running animation that the incoming page's
+     own layout change can interrupt. The result was that following a link could
+     leave you part-way down the page you had just asked for — clicking the brand
+     from the directory landed on "How it works", and Methodology landed on its
+     second heading. An instant reset is also the right behaviour for a reference
+     work: a jump is not a journey.
+  */
+  /* The sticky header must not cover an anchored heading. */
+  scroll-padding-top: 5rem;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-ink-800);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Archivo has a tall x-height; a touch of optical spacing keeps long runs even. */
+  letter-spacing: 0.001em;
+}
+
+::selection {
+  background: var(--color-accent-100);
+  color: var(--color-ink-900);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--color-ink-900);
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.14;
+  letter-spacing: -0.012em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+/* Display sizes are fluid but bounded, so a headline never becomes a poster. */
+h1 {
+  font-size: clamp(1.95rem, 4.4vw, 3rem);
+}
+h2 {
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+}
+h3 {
+  font-size: clamp(1.075rem, 1.5vw, 1.2rem);
+}
+h4 {
+  font-size: 1rem;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--color-accent-700);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, var(--color-accent-600) 40%, transparent);
+  transition: color var(--dur) var(--ease), text-decoration-color var(--dur) var(--ease);
+}
+
+a:hover {
+  color: var(--color-accent-900);
+  text-decoration-color: currentColor;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-sm);
+}
+
+/* Figures must align in tables and result panels. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Screen-reader-only, for labels the visual design does not need to show. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent-600);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Layout
+   ========================================================================== */
+
+.u-container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--measure-default);
+  padding-inline: var(--gutter);
+}
+
+.u-container--wide {
+  max-width: var(--measure-wide);
+}
+
+.u-container--read {
+  max-width: var(--measure-read);
+}
+
+.band {
+  background: var(--color-canvas);
+  padding-block: var(--section-y);
+}
+
+.band--surface {
+  background: var(--color-surface);
+}
+
+.band--subtle {
+  background: var(--color-subtle);
+}
+
+.band--tight {
+  padding-block: var(--section-y-tight);
+}
+
+.band--none {
+  padding-block: 0;
+}
+
+/* A band that opens a page sits against the header rule, not below a gap. */
+.band--lead {
+  padding-block: clamp(1.75rem, 4vw, 3rem) var(--section-y);
+}
+
+/* A section within a band, separated by a hairline rather than a gap. */
+.band--ruled {
+  border-top: 1px solid var(--color-line);
+}
+
+/* ==========================================================================
+   Type helpers
+   ========================================================================== */
+
+/* Small uppercase label: the eyebrow above a heading, a table caption, a
+   section index. Wide tracking is what makes it read as a document label. */
+.eyebrow {
+  margin: 0;
+  color: var(--color-ink-500);
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-feature-settings: "tnum" 1;
+}
+
+.eyebrow--accent {
+  color: var(--color-accent-700);
+}
+
+/*
+  The lead, in two sizes.
+
+  A jurisdiction summary is several sentences of real information — the mechanism, the
+  authority, what is specific to the place — and setting all of it at one weight and one
+  measure is what makes a page look like a wall of text. The first sentence takes display
+  weight as a standfirst (`.lede--opening`) and the rest reads as its explanation. Nothing
+  is shortened or reworded to achieve it; `splitLead` only decides where the break goes.
+*/
+.lede-group {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 64ch;
+}
+
+.lede {
+  color: var(--color-ink-600);
+  font-size: clamp(1.0625rem, 1.4vw, 1.1875rem);
+  line-height: 1.55;
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+.lede--opening {
+  margin: 0;
+  max-width: 42ch;
+  color: var(--color-ink-800);
+  font-family: var(--font-display);
+  font-size: clamp(1.3125rem, 2.1vw, 1.625rem);
+  font-weight: 500;
+  line-height: 1.28;
+  letter-spacing: -0.008em;
+}
+
+.lede--body {
+  margin: 0;
+}
+
+.muted {
+  color: var(--color-ink-500);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--color-line);
+  margin: 0;
+}
+
+/* ==========================================================================
+   Page header
+
+   Title and facts share one band. The aside is separated by a hairline rather
+   than a card, so it reads as a margin note on the same document.
+   ========================================================================== */
+
+.page-head {
+  display: grid;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.page-head__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.page-head__title {
+  max-width: 34ch;
+}
+
+.page-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin-top: 1.75rem;
+}
+
+.page-head__meta {
+  padding-top: 0.25rem;
+}
+
+@media (min-width: 62rem) {
+  .page-head {
+    grid-template-columns: minmax(0, 1fr) 19rem;
+    gap: 3.5rem;
+  }
+
+  .page-head__aside {
+    border-left: 1px solid var(--color-line);
+    padding-left: 1.75rem;
+  }
+}
+
+/* A list of facts about a page: label in small caps, value in body ink. */
+.facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9375rem;
+}
+
+.facts__item {
+  display: grid;
+  gap: 0.125rem;
+}
+
+/*
+  In the header's right-hand column the facts are a rail, so they are separated by
+  hairlines rather than by a gap: four labelled values in a 19rem column read as a
+  specification when they are ruled off from one another, and as a list of leftovers
+  when they are not.
+*/
+.page-head__aside .facts {
+  gap: 0;
+}
+
+.page-head__aside .facts__item {
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.page-head__aside .facts__item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.page-head__aside .facts__value {
+  font-family: var(--font-display);
+}
+
+.facts__label {
+  color: var(--color-ink-500);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.facts__value {
+  color: var(--color-ink-900);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   Buttons
+
+   Three weights plus a destructive variant. Every state is defined here: the
+   previous implementation had no hover, active or disabled appearance at all.
+   ========================================================================== */
+
+.btn {
+  --btn-bg: var(--color-surface);
+  --btn-fg: var(--color-ink-800);
+  --btn-border: var(--color-line-strong);
+  --btn-bg-hover: var(--color-subtle);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.375rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--btn-border);
+  border-radius: var(--radius-md);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  appearance: none;
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+.btn:hover {
+  background: var(--btn-bg-hover);
+  color: var(--btn-fg);
+  text-decoration: none;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  --btn-bg: var(--color-accent-800);
+  --btn-fg: #ffffff;
+  --btn-border: var(--color-accent-800);
+  --btn-bg-hover: var(--color-accent-900);
+}
+
+.btn--secondary {
+  --btn-bg: var(--color-surface);
+  --btn-fg: var(--color-ink-800);
+  --btn-border: var(--color-line-strong);
+  --btn-bg-hover: var(--color-subtle);
+}
+
+.btn--quiet {
+  --btn-bg: transparent;
+  --btn-fg: var(--color-accent-700);
+  --btn-border: transparent;
+  --btn-bg-hover: var(--color-accent-50);
+}
+
+.btn--danger {
+  --btn-bg: var(--color-surface);
+  --btn-fg: var(--color-danger-700);
+  --btn-border: var(--color-danger-100);
+  --btn-bg-hover: var(--color-danger-50);
+}
+
+.btn--sm {
+  min-height: 1.875rem;
+  padding: 0.3125rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.btn--lg {
+  min-height: 2.75rem;
+  padding: 0.6875rem 1.25rem;
+  font-size: 1rem;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn[disabled]:hover {
+  background: var(--btn-bg);
+}
+
+/* Loading: the label stays, the ring spins. No layout shift. */
+.btn[data-loading="true"] {
+  cursor: progress;
+}
+
+.btn__spinner {
+  width: 0.875em;
+  height: 0.875em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 999px;
+  animation: spin 620ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   Links with an affordance, used inside prose and list rows
+   ========================================================================== */
+
+.link-quiet {
+  color: var(--color-accent-700);
+  text-decoration: none;
+  transition: color var(--dur) var(--ease);
+}
+
+.link-quiet:hover {
+  color: var(--color-accent-900);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+/* An arrow that advances on hover: a cue, not a decoration. */
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link-arrow::after {
+  content: "";
+  width: 0.5em;
+  height: 0.5em;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--dur) var(--ease);
+}
+
+.link-arrow:hover::after {
+  transform: rotate(45deg) translate(0.1em, -0.1em);
+}
+
+/* ==========================================================================
+   Badge — a data label, not a marketing pill
+   ========================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--color-subtle);
+  color: var(--color-ink-600);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  padding: 0.0625rem 0.375rem;
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge--accent {
+  background: var(--color-accent-50);
+  color: var(--color-accent-700);
+  border-color: var(--color-accent-100);
+}
+
+.badge--verified {
+  background: var(--color-verified-50);
+  color: var(--color-verified-800);
+  border-color: var(--color-verified-100);
+}
+
+.badge--signal {
+  background: var(--color-caution-50);
+  color: var(--color-caution-800);
+  border-color: var(--color-caution-100);
+}
+
+.badge--danger {
+  background: var(--color-danger-50);
+  color: var(--color-danger-800);
+  border-color: var(--color-danger-100);
+}
+
+/* A dot precedes a status badge, so the state survives a monochrome print. */
+.badge--dot::before {
+  content: "";
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: currentColor;
+  flex: none;
+}
+
+/* ==========================================================================
+   Callout — the semantic states
+   ========================================================================== */
+
+.callout {
+  background: var(--color-subtle);
+  border-left: 3px solid var(--color-line-strong);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 0.875rem 1.125rem;
+}
+
+.callout__label {
+  margin: 0;
+  color: var(--color-ink-600);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.callout__title {
+  margin: 0.375rem 0 0;
+  color: var(--color-ink-900);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.callout__body {
+  margin-top: 0.5rem;
+  color: var(--color-ink-700);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.callout--info {
+  background: var(--color-accent-50);
+  border-left-color: var(--color-accent-600);
+}
+
+.callout--info .callout__label {
+  color: var(--color-accent-700);
+}
+
+.callout--estimate {
+  background: var(--color-caution-50);
+  border-left-color: var(--color-caution-700);
+}
+
+.callout--estimate .callout__label {
+  color: var(--color-caution-800);
+}
+
+.callout--verified {
+  background: var(--color-verified-50);
+  border-left-color: var(--color-verified-700);
+}
+
+.callout--verified .callout__label {
+  color: var(--color-verified-800);
+}
+
+.callout--warning {
+  background: var(--color-danger-50);
+  border-left-color: var(--color-danger-700);
+}
+
+.callout--warning .callout__label {
+  color: var(--color-danger-800);
+}
+
+/* The figure inside an estimate callout is the point of the page. */
+.callout__figure {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.4vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums lining;
+  color: var(--color-ink-900);
+}
+
+/* ==========================================================================
+   Tables — the most important surface in the product
+   ========================================================================== */
+
+.tablewrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  /* Friction, so a swipe on mobile does not scroll the page instead. */
+  overscroll-behavior-x: contain;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.table__caption {
+  caption-side: top;
+  text-align: left;
+  padding: 0.625rem 0.875rem;
+  color: var(--color-ink-500);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-surface);
+}
+
+.table th {
+  text-align: left;
+  padding: 0.5rem 0.875rem;
+  border-bottom: 1px solid var(--color-line-strong);
+  background: var(--color-subtle);
+  color: var(--color-ink-600);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-ink-800);
+  vertical-align: top;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Row hover is the cheapest way to make a wide table readable across columns. */
+.table tbody tr {
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.table tbody tr:hover {
+  background: var(--color-accent-50);
+}
+
+.table tfoot td {
+  background: var(--color-subtle);
+  border-top: 1px solid var(--color-line-strong);
+  border-bottom: 0;
+  color: var(--color-ink-900);
+  font-weight: 600;
+}
+
+.table .is-num {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+}
+
+.table .is-muted {
+  color: var(--color-ink-500);
+}
+
+/* Cell sub-labels: the second and third lines inside a primary cell. */
+.table__sub {
+  display: block;
+  margin-top: 0.1875rem;
+  color: var(--color-ink-500);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.table__note {
+  display: block;
+  margin-top: 0.3125rem;
+  color: var(--color-ink-600);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  max-width: 46ch;
+}
+
+/* A fee formula kept in the document's own syntax. Monospaced and boxed so it is
+   never mistaken for prose, and never reflowed into ambiguity. */
+.formula {
+  display: inline-block;
+  padding: 0.1875rem 0.4375rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-subtle);
+  color: var(--color-ink-700);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.table .is-strong {
+  color: var(--color-ink-900);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Forms
+   ========================================================================== */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.field__label {
+  color: var(--color-ink-800);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.field__hint {
+  color: var(--color-ink-500);
+  font-size: 0.8125rem;
+}
+
+.field__error {
+  color: var(--color-danger-700);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.input,
+.select {
+  width: 100%;
+  min-height: 2.375rem;
+  padding: 0.5rem 0.625rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  color: var(--color-ink-900);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  line-height: 1.4;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.input:hover,
+.select:hover {
+  border-color: var(--color-ink-400);
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--color-accent-600);
+  box-shadow: 0 0 0 3px var(--color-accent-50);
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--color-danger-700);
+}
+
+.input[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px var(--color-danger-50);
+}
+
+.input[disabled],
+.select[disabled] {
+  background: var(--color-subtle);
+  color: var(--color-ink-500);
+  cursor: not-allowed;
+}
+
+/* The calculator's two-column input grid, collapsing under 40rem. */
+.calculator-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.875rem;
+}
+
+@media (min-width: 40rem) {
+  .calculator-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.875rem 1.25rem;
+  }
+}
+
+/* Currency and other figure inputs: mono, right-aligned, unit affixed. */
+.input-affix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-affix__unit {
+  position: absolute;
+  left: 0.625rem;
+  color: var(--color-ink-400);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+.input--figures {
+  padding-left: 1.75rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   Panels — used sparingly. A "card" here is a ruled data block, not a tile.
+   ========================================================================== */
+
+/*
+   A panel is a bounded data block, not a card on a shelf. The header is flush
+   with the panel's own edge — an inset bar floating inside the box reads as a
+   stray element rather than as the block's title.
+
+   Padding lives on the header and the body, never on the panel, so the two can
+   align on the same gutter and a flush header band can span the full width.
+*/
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.375rem 1rem;
+  padding: 0.6875rem 1.25rem;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-subtle);
+}
+
+.panel__body {
+  padding: 1.25rem;
+}
+
+.panel__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  color: var(--color-ink-700);
+}
+
+/* A measurement: label above, figure in display type. Used for dataset facts. */
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.stat__value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums lining;
+  line-height: 1.05;
+  color: var(--color-ink-900);
+}
+
+.stat__label {
+  color: var(--color-ink-500);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Data lists (jurisdictions, sources, directory rows)
+
+   A ruled row instead of a bordered card: this is a list of records, and a card
+   per record would suggest each one is a product.
+   ========================================================================== */
+
+.dataset {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.dataset__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding: 0.875rem 0.25rem;
+  border-bottom: 1px solid var(--color-line);
+  text-decoration: none;
+  color: inherit;
+  transition: background-color var(--dur-fast) var(--ease), padding-left var(--dur) var(--ease);
+}
+
+a.dataset__row:hover {
+  background: var(--color-accent-50);
+  padding-left: 0.625rem;
+  text-decoration: none;
+}
+
+.dataset__primary {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: var(--color-ink-900);
+}
+
+.dataset__meta {
+  color: var(--color-ink-500);
+  font-size: 0.8125rem;
+}
+
+.dataset__row--pending {
+  opacity: 0.72;
+}
+
+/*
+   A dense index of names: the fifty states, four or five to a row.
+   Rendered as columns rather than a table because the reader is scanning for one
+   name, and a forty-nine-row table of the same value is noise with a header.
+*/
+.index-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  columns: 2;
+  column-gap: 1.5rem;
+  font-size: 0.875rem;
+}
+
+@media (min-width: 48rem) {
+  .index-list {
+    columns: 3;
+  }
+}
+
+@media (min-width: 72rem) {
+  .index-list {
+    columns: 5;
+  }
+}
+
+.index-list li {
+  break-inside: avoid;
+  padding: 0.1875rem 0;
+  color: var(--color-ink-500);
+}
+
+/* ==========================================================================
+   Sources — the trust surface
+   ========================================================================== */
+
+.source {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.375rem;
+  padding: 0.875rem 0 0.875rem 0.875rem;
+  border-left: 2px solid var(--color-line-strong);
+  transition: border-color var(--dur) var(--ease);
+}
+
+.source:hover {
+  border-left-color: var(--color-accent-600);
+}
+
+.source__title {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink-900);
+  /* A long document title or URL must wrap, not push the panel wider. */
+  overflow-wrap: anywhere;
+}
+
+.source__meta {
+  color: var(--color-ink-500);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.source__note {
+  color: var(--color-ink-600);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  max-width: 72ch;
+}
+
+/* ==========================================================================
+   Breadcrumbs
+   ========================================================================== */
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+}
+
+.crumbs__link {
+  color: var(--color-ink-500);
+  text-decoration: none;
+  /* A crumb is small text on a shared line, but the touch target should not be:
+     the padding extends the tappable area without moving the visible text. */
+  padding: 0.5rem 0.25rem;
+  margin: -0.5rem -0.25rem;
+}
+
+.crumbs__link:hover {
+  color: var(--color-accent-700);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.crumbs__sep {
+  color: var(--color-ink-400);
+}
+
+.crumbs__current {
+  color: var(--color-ink-600);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Header and navigation
+   ========================================================================== */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  /*
+     Opaque, and deliberately not a blurred translucent bar. A half-transparent
+     header lets the page show through it as a smear while scrolling, which is the
+     one piece of "app" chrome this product does not need — the border below is
+     enough separation, and it survives greyscale and forced colours.
+  */
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.75rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--color-ink-900);
+}
+
+.brand__name {
+  font-family: var(--font-display);
+  font-size: 1.1875rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  /* Not `nowrap`: on viewports narrower than the brand plus the Menu button the
+     name wraps instead of pushing the button past the right edge, which was
+     causing horizontal scroll at 320-375px. With room to spare (every width
+     above ~384px) nothing wraps, so the desktop header is unchanged. */
+  white-space: normal;
+}
+
+.brand__mark {
+  flex: none;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A nav item is a ruled tab: the current one is marked by an underline that
+   reaches the header rule, so "where am I" is answered without a badge. */
+.nav__link {
+  position: relative;
+  display: inline-block;
+  padding: 0.5rem 0.625rem;
+  color: var(--color-ink-600);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+.nav__link:hover {
+  color: var(--color-ink-900);
+  background: var(--color-subtle);
+}
+
+.nav__link[aria-current="page"]::after,
+.nav__link[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0.625rem;
+  right: 0.625rem;
+  bottom: -0.6875rem;
+  height: 2px;
+  background: var(--color-accent-700);
+}
+
+.nav__link[aria-current="page"] {
+  color: var(--color-ink-900);
+}
+
+/* Mobile navigation: a native disclosure, so it costs no JavaScript. It now
+   animates, closes on outside click via <details> semantics, and looks like the
+   rest of the system instead of a floating box. */
+.menu {
+  position: relative;
+}
+
+.menu > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0.375rem 0.625rem;
+  cursor: pointer;
+  list-style: none;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink-800);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu > summary:hover {
+  background: var(--color-subtle);
+}
+
+.menu[open] > summary {
+  background: var(--color-subtle);
+  border-color: var(--color-ink-400);
+}
+
+/* The hamburger is drawn, so there is no icon asset and no font. */
+.menu__glyph {
+  display: grid;
+  gap: 3px;
+  width: 1rem;
+}
+
+.menu__glyph span {
+  height: 1.5px;
+  background: currentColor;
+  transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+
+.menu[open] .menu__glyph span:first-child {
+  transform: translateY(2.25px) rotate(45deg);
+}
+
+.menu[open] .menu__glyph span:last-child {
+  transform: translateY(-2.25px) rotate(-45deg);
+}
+
+.menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  min-width: 15rem;
+  padding: 0.375rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  animation: menu-in var(--dur-slow) var(--ease);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.menu__link {
+  display: block;
+  padding: 0.5rem 0.625rem;
+  color: var(--color-ink-800);
+  font-size: 0.9375rem;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.menu__link:hover {
+  background: var(--color-accent-50);
+}
+
+.menu__sep {
+  height: 1px;
+  background: var(--color-line);
+  margin: 0.375rem 0;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+
+.footer {
+  border-top: 1px solid var(--color-line);
+  background: var(--color-surface);
+  margin-top: auto;
+}
+
+/*
+   Footer columns.
+
+   The brand block is not a fourth column of links: it carries the disclaimer and
+   needs a wider measure, so the grid is explicit — one column on a phone, two on a
+   tablet, and a wider first column on a desktop. `auto-fit` treated all four
+   equally and squeezed the disclaimer into a 10rem slot.
+*/
+.footer__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+}
+
+@media (min-width: 40rem) {
+  .footer__cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.25rem;
+  }
+}
+
+@media (min-width: 62rem) {
+  .footer__cols {
+    grid-template-columns: minmax(16rem, 1.7fr) repeat(3, minmax(7rem, 1fr));
+    gap: 2rem 3rem;
+  }
+}
+
+.footer__inner {
+  padding: 2.75rem 0 1.75rem;
+}
+
+.footer__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  text-decoration: none;
+}
+
+.footer__tagline {
+  margin: 0.75rem 0 0;
+  color: var(--color-ink-500);
+  font-size: 0.875rem;
+  line-height: 1.62;
+  max-width: 27rem;
+}
+
+.footer__legal {
+  display: grid;
+  gap: 0.625rem;
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.footer__legal .footer__disclaimer:first-child {
+  color: var(--color-ink-700);
+  font-weight: 600;
+}
+
+.footer__heading {
+  margin: 0;
+  color: var(--color-ink-500);
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.footer__list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/*
+ * Footer links are inline and carry no padding, which keeps the measure of the
+ * legal column tidy but leaves them under a comfortable tap target on touch
+ * screens. Vertical padding lifts each link to ~30px without changing the type;
+ * the negative margin pays the padding back so the list keeps its rhythm, and
+ * horizontal padding widens the hit area past the label without moving it.
+ */
+.footer__link {
+  color: var(--color-ink-700);
+  font-size: 0.875rem;
+  text-decoration: none;
+  display: inline-block;
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  margin: -0.25rem 0;
+}
+
+.footer__link:hover {
+  color: var(--color-accent-700);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.footer__disclaimer {
+  color: var(--color-ink-500);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  max-width: 78ch;
+}
+
+/* ==========================================================================
+   The map
+
+   Rendered on the server as real SVG paths; only the tooltip is client-side.
+   States are drawn as plots: unavailable ones are ruled paper, available ones
+   carry accent ink, the hovered one carries the signal.
+   ========================================================================== */
+
+.map {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: clamp(0.5rem, 2vw, 1.25rem);
+  overflow: hidden;
+}
+
+.map__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: manipulation;
+}
+
+.map__state {
+  fill: var(--color-sunken);
+  stroke: var(--color-surface);
+  stroke-width: 0.75;
+  stroke-linejoin: round;
+  transition:
+    fill var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+/*
+   Availability is one attribute, named once.
+
+   It is `data-map-available` here and in the component. The first version of this
+   stylesheet addressed `[data-available]` while the component emitted
+   `[data-map-available]`, so every published state rendered as unpublished — a
+   silent failure, because a selector that matches nothing is not an error.
+*/
+.map__state[data-map-available="false"]:hover {
+  fill: var(--color-line-strong);
+}
+
+.map__state[data-map-available="true"] {
+  fill: var(--color-accent-600);
+  cursor: pointer;
+}
+
+/*
+   Hover lift.
+
+   Two user units, which is roughly 2px at the rendered size: enough to read as
+   "this one is live", small enough that neighbouring coastlines do not visibly
+   separate. The transform lives on the path while the entrance animation lives on
+   the wrapper (see below), because an animation with `fill-mode: both` keeps its
+   final `transform` forever and always outranks a hover declaration.
+*/
+.map__state[data-map-available="true"]:hover {
+  fill: var(--color-accent-800);
+  transform: translateY(-2px);
+}
+
+/*
+   Keyboard focus on a published state.
+
+   Darker accent plus a light stroke, not the signal colour: vermilion means
+   "this figure is an estimate" everywhere else in the system, and a state the
+   reader has merely tabbed to is not a warning.
+*/
+.map__link:focus-visible .map__state {
+  fill: var(--color-accent-900);
+  stroke: var(--color-canvas);
+  stroke-width: 1.5;
+  transform: translateY(-2px);
+}
+
+/*
+   Entrance: the states arrive one after another as the plate is drawn.
+
+   The delay is written per state by the server component as `--enter-delay`, so
+   the sequence is deterministic and costs no JavaScript. Wrappers only — see the
+   note on hover above.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  .map__link,
+  .map__group {
+    animation: map-rise 560ms var(--ease) both;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+}
+
+@keyframes map-rise {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The link wrapping a published state must not add an underline to the shape. */
+.map__link {
+  text-decoration: none;
+}
+
+.map__link:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--color-accent-900);
+  outline-offset: 1px;
+}
+
+.map__tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 9rem;
+  max-width: 15rem;
+  padding: 0.5rem 0.625rem;
+  background: var(--color-ink-900);
+  color: #fff;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 10px));
+  animation: tip-in var(--dur-fast) var(--ease);
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% - 6px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, calc(-100% - 10px));
+  }
+}
+
+.map__tooltip-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.map__tooltip-state {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #fff 72%, transparent);
+}
+
+.map__tooltip-state[data-map-available="true"] {
+  color: #9ed4c4;
+}
+
+.map__tooltip-detail {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, #fff 88%, transparent);
+}
+
+.map__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 1.25rem;
+  padding: 0 0.25rem 0.25rem;
+  border-top: 1px solid var(--color-line);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.map__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  color: var(--color-ink-600);
+  font-size: 0.8125rem;
+}
+
+/*
+   Text links for every published state, under the map.
+
+   The map's shapes are plots, not controls: at phone widths the smallest render
+   far below any touch-target minimum (Rhode Island is about 4×5 px), and they are
+   intentionally out of the tab order. This row gives every covered state a real
+   link that is as easy to tap as it is to tab to, without enlarging the shapes or
+   duplicating the directory list below.
+*/
+.map__index {
+  margin: 0.5rem 0 0;
+  padding: 0.75rem 0.25rem 0.25rem;
+  border-top: 1px solid var(--color-line);
+  font-size: 0.875rem;
+  line-height: 2;
+}
+
+.map__index a {
+  color: var(--color-ink-600);
+  padding: 0.25rem 0.125rem;
+}
+
+.map__index a:hover {
+  color: var(--color-accent-900);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.map__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 1px;
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-sunken);
+  flex: none;
+}
+
+.map__swatch--available {
+  background: var(--color-accent-600);
+  border-color: var(--color-accent-700);
+}
+
+/* ==========================================================================
+   Disclosure (native <details>): the calculation working, FAQ, notes
+   ========================================================================== */
+
+.disclosure {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition: border-color var(--dur) var(--ease);
+}
+
+.disclosure:hover {
+  border-color: var(--color-line-strong);
+}
+
+.disclosure[open] {
+  border-color: var(--color-line-strong);
+}
+
+.disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.6875rem 0.875rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--color-ink-900);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure > summary:hover {
+  background: var(--color-subtle);
+}
+
+/* A drawn chevron, rotated on open — the only affordance needed. */
+.disclosure > summary::after {
+  content: "";
+  width: 0.4375rem;
+  height: 0.4375rem;
+  margin-left: auto;
+  border-right: 1.5px solid var(--color-ink-500);
+  border-bottom: 1.5px solid var(--color-ink-500);
+  transform: rotate(45deg) translate(-1px, -1px);
+  transition: transform var(--dur) var(--ease);
+  flex: none;
+}
+
+.disclosure[open] > summary::after {
+  transform: rotate(225deg) translate(-1px, -1px);
+}
+
+.disclosure__body {
+  padding: 0 0.875rem 0.875rem;
+  color: var(--color-ink-700);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+/* Inline disclosure: the "show the working" toggle inside a table cell. */
+.working > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--color-ink-500);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-bottom: 1px dashed var(--color-line-strong);
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.working > summary::-webkit-details-marker {
+  display: none;
+}
+
+.working > summary:hover {
+  color: var(--color-accent-700);
+  border-bottom-color: var(--color-accent-200);
+}
+
+.working__grid {
+  margin: 0.5rem 0 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.125rem 1rem;
+  max-width: 24rem;
+  font-size: 0.8125rem;
+}
+
+.working__row {
+  display: contents;
+}
+
+.working__label {
+  color: var(--color-ink-500);
+}
+
+.working__value {
+  margin: 0;
+  text-align: right;
+  color: var(--color-ink-800);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   Loading and empty states
+   ========================================================================== */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-subtle) 0%,
+    var(--color-sunken) 50%,
+    var(--color-subtle) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s var(--ease) infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.empty {
+  border: 1px dashed var(--color-line-strong);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  background: var(--color-surface);
+}
+
+.empty__title {
+  margin: 0;
+  color: var(--color-ink-900);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Editorial prose
+   ========================================================================== */
+
+.prose-editorial {
+  max-width: 66ch;
+  color: var(--color-ink-700);
+  font-size: 1.0125rem;
+  line-height: 1.66;
+}
+
+.prose-editorial > * + * {
+  margin-top: 1.05em;
+}
+
+.prose-editorial h2 {
+  margin-top: 2.25em;
+  padding-top: 1.1em;
+  border-top: 1px solid var(--color-line);
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+}
+
+.prose-editorial h3 {
+  margin-top: 1.75em;
+  font-size: 1.125rem;
+}
+
+.prose-editorial ul,
+.prose-editorial ol {
+  margin-top: 1.05em;
+  padding-left: 1.35em;
+}
+
+.prose-editorial ul {
+  list-style: disc outside;
+}
+
+.prose-editorial ol {
+  list-style: decimal outside;
+}
+
+.prose-editorial li > ul,
+.prose-editorial li > ol {
+  margin-top: 0.4em;
+}
+
+.prose-editorial li + li {
+  margin-top: 0.4em;
+}
+
+.prose-editorial li::marker {
+  color: var(--color-ink-400);
+}
+
+.prose-editorial strong {
+  color: var(--color-ink-900);
+  font-weight: 600;
+}
+
+.prose-editorial code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--color-subtle);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  padding: 0.1em 0.3em;
+}
+
+.prose-editorial table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.prose-editorial th,
+.prose-editorial td {
+  border-bottom: 1px solid var(--color-line);
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose-editorial th {
+  color: var(--color-ink-900);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Editorial text
+
+   The renderer for prose that is stored in a database column rather than written
+   as JSX: paragraphs, bullet lists and `**emphasis**`, turned into elements by
+   `ui/editorial-text.tsx`.
+
+   Why this is separate from `.prose-editorial` above: that class is for
+   hand-written markup, where the author controls the headings, lists and tables.
+   This one is for text whose structure exists only inside the string, and it has
+   one job — make a long note readable instead of a wall of grey.
+
+   Three commitments:
+
+   1. **Paragraphs breathe.** The blank line the author wrote becomes real space,
+      not a line break. This is the whole fix: a four-paragraph explanation used to
+      arrive as one slab.
+   2. **Lists look like lists.** A drawn marker, a hanging indent and air between
+      items, so a list of exclusions can be scanned rather than deciphered.
+   3. **The measure is capped** at the same 66ch the editorial prose uses. A
+      full-width paragraph in a 76rem container is unreadable however well it is
+      marked up.
+   ========================================================================== */
+
+.editorial {
+  max-width: 66ch;
+  color: var(--color-ink-700);
+  font-size: 1.0125rem;
+  line-height: 1.66;
+}
+
+/*
+   Both rules have the same specificity (one class plus a universal), so source
+   order is what gives every block after the first its top margin. Written this way
+   rather than with `:where()` so the intent is visible without knowing what
+   `:where()` does to specificity.
+*/
+.editorial > * {
+  margin: 0;
+}
+
+.editorial > * + * {
+  margin-top: 1.05em;
+}
+
+.editorial strong {
+  color: var(--color-ink-900);
+  font-weight: 600;
+}
+
+.editorial ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.625rem;
+}
+
+.editorial li {
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+/* The marker is drawn rather than a bullet character, so it matches the hairline
+   language used by every other list on the site. */
+.editorial li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 0.4375rem;
+  height: 1px;
+  background: var(--color-line-strong);
+}
+
+/* The emphasised lead of a list item — "**Plan review.** The two documents…" — is
+   the heading a reader is scanning for, so it is the one run set in full ink. */
+.editorial__term {
+  color: var(--color-ink-900);
+  font-weight: 600;
+}
+
+/*
+   Where the surrounding component already sets the type — a FAQ answer, a
+   requirement description, a source annotation — the block inherits it rather than
+   imposing the page measure. Used far more than the default, because most stored
+   prose on this site sits inside something else.
+*/
+.editorial--compact {
+  max-width: 66ch;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Inside a callout the block inherits the callout's own size, tone and measure
+   instead of imposing the page measure on it. */
+.callout__body > .editorial {
+  max-width: none;
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.callout__body > .editorial > * + * {
+  margin-top: 0.75em;
+}
+
+/* The exclusions note sits under an estimate and lists what the number above it
+   does not contain. It gets more air than prose in a callout normally would,
+   because the reader is here to find one specific exclusion. */
+.callout--estimate .editorial ul {
+  gap: 0.75rem;
+  margin-top: 0.875rem;
+}
+
+/* ==========================================================================
+   Utility layouts used by pages
+   ========================================================================== */
+
+.flow {
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-sm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stack-md {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.cluster-between {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1.5rem 2rem;
+}
+
+/* Section heading with its label, used across the site so every band opens
+   the same way. */
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ==========================================================================
+   Vertical grids whose items may be wide
+
+   `minmax(0, 1fr)` is load-bearing, not stylistic. An `auto` track sizes to the
+   widest item's *max-content*, so a single wide fee table stretches every sibling
+   in the grid — including the result panel — past the container's own border. That
+   is exactly what happened to the worked example: the components table with its
+   nowrap formulas is ~1000px of max-content, so the inputs table and the total
+   panel were drawn 1000px wide inside an 840px panel.
+
+   Constraining the track keeps everything inside the box and lets `.tablewrap`
+   scroll internally, which is what it is for.
+   ========================================================================== */
+
+.grid-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.grid-stack--tight {
+  gap: 0.5rem;
+}
+
+.grid-stack--loose {
+  gap: 1.75rem;
+}
+
+.grid-stack > * {
+  min-width: 0;
+}
+
+/* ==========================================================================
+   Editorial spread
+
+   Prose pinned to a 66ch measure leaves half of a 1280px screen empty, which reads
+   as an unfinished page rather than as restraint. Moving the heading into its own
+   rail restores the balance and gives these bands a two-column rhythm that the
+   full-width data bands then break on purpose.
+   ========================================================================== */
+
+.spread {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 62rem) {
+  .spread {
+    grid-template-columns: minmax(12rem, 19rem) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: start;
+  }
+}
+
+.spread__rail {
+  display: grid;
+  gap: 0.5625rem;
+}
+
+.spread__rail h2 {
+  font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+  line-height: 1.2;
+}
+
+.spread__body {
+  max-width: 70ch;
+  color: var(--color-ink-700);
+  font-size: 1.0125rem;
+  line-height: 1.68;
+}
+
+.spread__body > * + * {
+  margin-top: 1.2em;
+}
+
+/* ==========================================================================
+   Process steps
+
+   A numbered run with hairline rules, not a row of identical feature cards. It
+   reads like a table of contents, which is what it is: the sequence a page goes
+   through before it is published, each step showing the URL it produces.
+   ========================================================================== */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.375rem 0.875rem;
+  padding: 1.125rem 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+@media (min-width: 56rem) {
+  .step {
+    grid-template-columns: 2.25rem minmax(13rem, 17rem) minmax(0, 1fr);
+    align-items: baseline;
+  }
+}
+
+.step__index {
+  color: var(--color-ink-400);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+.step__title {
+  color: var(--color-ink-900);
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.step__path {
+  display: block;
+  margin-top: 0.3125rem;
+  color: var(--color-ink-400);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.step__body {
+  color: var(--color-ink-600);
+  font-size: 0.9375rem;
+  line-height: 1.62;
+  max-width: 64ch;
+}
+
+/* ==========================================================================
+   The calculated result
+
+   The single place in the product where one figure is allowed to dominate. It is
+   the reason the page exists, so it gets display type, a measured label and a
+   left rule in the accent — and nothing else on screen competes with it.
+   ========================================================================== */
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: clamp(1.125rem, 2.6vw, 1.75rem) clamp(1.125rem, 3vw, 2rem);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-left: 3px solid var(--color-accent-700);
+  border-radius: var(--radius-md);
+}
+
+.result__label {
+  color: var(--color-ink-500);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.result__figure {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.6vw, 2.75rem);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining;
+  color: var(--color-ink-900);
+}
+
+.result__note {
+  margin-top: 0.4375rem;
+  max-width: 60ch;
+  color: var(--color-ink-600);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.result__stamp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin-top: 0.9375rem;
+  padding-top: 0.8125rem;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-ink-500);
+  font-size: 0.75rem;
+}
+
+.result__stamp b {
+  color: var(--color-ink-700);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tally of rules that were considered and left out — evidence, not decoration. */
+/*
+   The two evidence lists under a calculation: "Fees that do not apply here" and
+   "Assumptions". Both are lists of long sentences with a bold lead, which is
+   exactly the shape that turns into a grey slab if the spacing is tight.
+
+   So they now use the same language as `.editorial`: a drawn marker instead of a
+   native disc (a disc at 0.875rem next to a 60-word sentence is visual noise), a
+   hanging indent so wrapped lines line up under the text rather than the marker,
+   and enough space between items to see where one ends. The leading `<b>` is the
+   thing a reader scans for, so it is the only run in full ink.
+*/
+.exclusions {
+  display: grid;
+  gap: 0.5625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 72ch;
+  color: var(--color-ink-600);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.exclusions li {
+  position: relative;
+  padding-left: 1.125rem;
+}
+
+.exclusions li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 0.4375rem;
+  height: 1px;
+  background: var(--color-line-strong);
+}
+
+.exclusions b {
+  color: var(--color-ink-900);
+  font-weight: 600;
+}
+
+.exclusions span {
+  color: var(--color-ink-400);
+  font-size: 0.8125rem;
+}
+
+/* ==========================================================================
+   The hero plate
+
+   A plotting sheet behind the masthead: the fine and coarse grid of engineering
+   paper, and across it the product's own motif — a marginal fee schedule — drawn
+   as one continuous step trace.
+
+   The plate is decorative and carries no content, so it is absolutely positioned
+   with `aria-hidden` and cannot shift layout or affect LCP. It adds no colour of
+   its own: it draws in the accent ink and the hairline tone at very low opacity.
+
+   The mask below is a transparency mask, not decoration. It is what guarantees
+   that the headline and the facts are never competing with the graphic for
+   contrast — the plate simply is not there under them.
+   ========================================================================== */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-canvas);
+  isolation: isolate;
+}
+
+/* The band keeps its own vertical rhythm but must not paint over the plate. */
+.hero > .band {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+.hero__plate {
+  position: absolute;
+  /* Inset by a few pixels so the slow drift below never exposes an edge. */
+  inset: -14px;
+  z-index: 0;
+  pointer-events: none;
+  color: var(--color-accent-700);
+  /*
+     Two grids: a 28px fine rule and a 140px major rule, which is what makes a
+     sheet read as graph paper rather than as a table someone drew. The horizontal
+     gradient keeps the whole thing out of the reading column on the left.
+  */
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, currentColor 12%, transparent) 0 1px,
+      transparent 1px 140px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      color-mix(in srgb, currentColor 12%, transparent) 0 1px,
+      transparent 1px 140px
+    ),
+    repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, currentColor 5%, transparent) 0 1px,
+      transparent 1px 28px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      color-mix(in srgb, currentColor 5%, transparent) 0 1px,
+      transparent 1px 28px
+    );
+  mask-image: linear-gradient(100deg, transparent 6%, rgba(0, 0, 0, 0.18) 34%, #000 72%);
+}
+
+.hero__trace {
+  position: absolute;
+  right: clamp(-6rem, -6vw, 0rem);
+  bottom: 0;
+  width: min(46rem, 62%);
+  height: auto;
+  overflow: visible;
+}
+
+.hero__trace-line {
+  fill: none;
+  stroke: var(--color-accent-700);
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.42;
+  /* Dash offset is the whole animation: the schedule draws itself, once. */
+  stroke-dasharray: var(--trace-length, 2400);
+}
+
+.hero__trace-node {
+  fill: var(--color-surface);
+  stroke: var(--color-accent-700);
+  stroke-width: 1.75;
+  opacity: 0.72;
+}
+
+.hero__trace-base {
+  stroke: var(--color-line-strong);
+  stroke-width: 1;
+}
+
+/*
+   The ambient layer: the same path drawn a second time as one short bright dash
+   that travels the whole trace and then repeats.
+
+   This is the one infinite decorative loop in the product, and it is the one the
+   motif earns. The plate is a marginal fee schedule; a mark that moves up it is the
+   reading of that schedule, which is literally what the site does. It is drawn in
+   the accent ink at full strength over a line that sits at 42% opacity, so the eye
+   is caught by something moving *on* the graphic rather than by the graphic itself.
+
+   The geometry: `stroke-dasharray` is one dash plus a gap longer than the path, so
+   exactly one dash is ever visible; animating `stroke-dashoffset` from 0 to
+   `-872px` (the path's own measured length) walks it from the first bracket to the
+   last without drawing a second copy of the line.
+*/
+.hero__trace-scan {
+  fill: none;
+  stroke: var(--color-accent-600);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-dasharray: 56 872;
+  stroke-dashoffset: 0;
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   Entrance and reveal
+
+   Two mechanisms, both CSS-only.
+
+   1. **On load** — the hero's own stagger, and the map's per-state arrival. Both
+      are time-driven, so they run once and stop.
+
+   2. **On scroll** — bands and their list items, driven by `animation-timeline:
+      view()`. This is gated behind `@supports`, which matters: a browser without
+      scroll-driven animations then renders everything plainly instead of leaving
+      it invisible. Content that depends on an animation running is content that
+      can disappear.
+
+   The reveal range is deliberately *short* (`entry 0% → entry 14%`). A long range
+   means a tall element that is already partly on screen when the page loads sits
+   frozen mid-animation — half-transparent until the reader happens to scroll. With
+   a short range, anything with more than a sliver in view is already fully
+   revealed.
+   ========================================================================== */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes trace-draw {
+  from {
+    stroke-dashoffset: var(--trace-length, 2400);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes plate-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-14px, -14px, 0);
+  }
+}
+
+/* Walks the dash from the first bracket to the last. 872px is the path length. */
+@keyframes trace-scan {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -872;
+  }
+}
+
+/* The highest bracket — the one that applies — breathes rather than pulses. */
+@keyframes node-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.7);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The hero, in reading order: one element at a time, then the facts. */
+  .hero .page-head__main > * {
+    animation: rise-in var(--dur-slow) var(--ease) both;
+  }
+
+  .hero .page-head__main > *:nth-child(2) {
+    animation-delay: 70ms;
+  }
+
+  .hero .page-head__main > *:nth-child(3) {
+    animation-delay: 140ms;
+  }
+
+  .hero .page-head__aside {
+    animation: rise-in var(--dur-slow) var(--ease) 210ms both;
+  }
+
+  /* 46 seconds to move 14px: present, but never something the eye tracks. */
+  .hero__plate {
+    animation: plate-drift 46s linear infinite alternate;
+  }
+
+  .hero__trace-line {
+    animation: trace-draw 1500ms var(--ease) 180ms both;
+  }
+
+  .hero__trace-node {
+    animation: fade-in 420ms var(--ease) both;
+  }
+
+  /*
+     The ambient pair. Both start after the one-shot entrance has finished, so the
+     hero still reads as "draw, then settle", and both run for as long as the page
+     is open. Nine seconds per pass: long enough that it is never the thing you are
+     looking at, short enough that a reader who notices it once will see it again
+     without waiting. The pulse is on the top node only, because the top node is the
+     bracket that applies.
+  */
+  .hero__trace-scan {
+    animation: trace-scan 9s linear 1800ms infinite;
+  }
+
+  .hero__trace-node--peak {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation:
+      fade-in 420ms var(--ease) 1010ms both,
+      node-pulse 5.5s ease-in-out 2400ms infinite;
+  }
+
+  @supports (animation-timeline: view()) {
+    main > .band {
+      animation: rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 14%;
+    }
+
+    /*
+       The first band is the page's own header and is on screen at load. It must
+       never start transparent, so it is excluded rather than animated.
+    */
+    main > .band:first-child {
+      animation: none;
+    }
+
+    /*
+       Records arrive one after another rather than as a slab. One rule per child,
+       because `animation-range` does not accept arithmetic — eight is as many as
+       any list in this product has before the eye stops noticing the sequence.
+    */
+    .steps > *,
+    .grid-cards > *,
+    .dataset > *,
+    .index-list > * {
+      animation: rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry 2% entry 22%;
+    }
+
+    .steps > *:nth-child(2),
+    .grid-cards > *:nth-child(2),
+    .dataset > *:nth-child(2),
+    .index-list > *:nth-child(2) {
+      animation-range: entry 6% entry 26%;
+    }
+
+    .steps > *:nth-child(3),
+    .grid-cards > *:nth-child(3),
+    .dataset > *:nth-child(3),
+    .index-list > *:nth-child(3) {
+      animation-range: entry 10% entry 30%;
+    }
+
+    .steps > *:nth-child(4),
+    .grid-cards > *:nth-child(4),
+    .dataset > *:nth-child(4),
+    .index-list > *:nth-child(4) {
+      animation-range: entry 14% entry 34%;
+    }
+
+    .steps > *:nth-child(n + 5),
+    .grid-cards > *:nth-child(n + 5),
+    .dataset > *:nth-child(n + 5),
+    .index-list > *:nth-child(n + 5) {
+      animation-range: entry 18% entry 38%;
+    }
+  }
+}
+
+/* ==========================================================================
+   Reduced motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  /*
+     The travelling dash is hidden rather than frozen. The global rule below
+     collapses every animation to 0.01ms with a single iteration, which for this
+     element would leave the dash parked at the foot of the trace, where it reads as
+     a stray bright dot. Absent is the honest state for a decorative mark.
+  */
+  .hero__trace-scan {
+    display: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

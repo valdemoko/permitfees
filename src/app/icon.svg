@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="PermitFees">
+  <!--
+    The same mark as the header: a marginal fee schedule, four brackets rising
+    from a baseline.
+
+    Two files, one design. The header mark is a React component that inherits
+    `currentColor`; a favicon has to be a standalone file the browser can fetch, so
+    the geometry is repeated here rather than imported. `tests/brand/icon.test.ts`
+    compares the two and fails if they drift apart.
+
+    The plate exists because a favicon is usually seen at 16px against a browser
+    tab, and thin white bars on white would disappear. The bars keep the mark's
+    own opacity ramp, which is what makes the staircase read as a range rather
+    than as four unrelated rectangles.
+  -->
+  <rect width="32" height="32" rx="6" fill="#0e3a46" />
+  <g transform="translate(4 4)" fill="#ffffff">
+    <rect x="2" y="15" width="4" height="6" opacity="0.26" />
+    <rect x="8" y="11" width="4" height="10" opacity="0.46" />
+    <rect x="14" y="7" width="4" height="14" opacity="0.7" />
+    <rect x="20" y="3" width="2" height="18" />
+    <rect x="2" y="21" width="20" height="1" opacity="0.32" />
+  </g>
+</svg>
